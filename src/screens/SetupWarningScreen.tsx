@@ -1,13 +1,15 @@
 import React from 'react';
-import Config from 'react-native-config';
 import { SafeAreaView } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faExclamationTriangle, faExclamation } from '@fortawesome/free-solid-svg-icons';
-import { translate } from '../utils/localize';
+import { config } from '../utils';
 import { Stack, YStack, XStack, Text, useTheme } from 'tamagui';
 import { useLanguage } from '../contexts/LanguageContext';
 
-const keyMissing = (key: string) => !Config[key];
+const keyMissing = (key: string) => {
+    const value = config(key);
+    return !value || String(value).length === 0;
+};
 
 const SetupWarningScreen = ({ error }: { error?: Error }) => {
     const { t } = useLanguage();
@@ -40,11 +42,11 @@ const SetupWarningScreen = ({ error }: { error?: Error }) => {
                             </Text>
                         </XStack>
                     )}
-                    {keyMissing('STOREFRONT_KEY') && (
-                        <XStack alignItems='center' bg='$red1' borderRadius='$2' px='$3' py='$2'>
+                    {keyMissing('FLEETBASE_HOST') && (
+                        <XStack alignItems='center' bg='$red1' borderRadius='$2' px='$3' py='$2' mb='$2'>
                             <FontAwesomeIcon icon={faExclamation} size={12} color='#7F1D1D' style={{ marginRight: 8 }} />
                             <Text color='$red900' fontWeight='bold'>
-                                {t('common.storefront')} {t('common.apiKey')}
+                                {t('common.fleetbase')} Host
                             </Text>
                             <Text color='$red900' fontWeight='500' ml='$1'>
                                 {t('SetupWarningScreen.envMissing')}

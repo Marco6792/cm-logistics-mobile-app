@@ -1,5 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">NavigatorApp</string>
-    <string name="facebook_app_id" tools:ignore="ResourceCycle">@string/facebook_app_id</string>
-    <string name="facebook_client_token" tools:ignore="ResourceCycle">@string/facebook_client_token</string>
+    <string name="facebook_app_id" tools:ignore="ResourceCycle">000000000000000</string>
+    <string name="facebook_client_token" tools:ignore="ResourceCycle">000000000000000</string>
+    <string name="TRANSISTORSOFT_LICENSE_KEY">000000000000000</string>
+    <string name="FACEBOOK_APP_ID">000000000000000</string>
+    <string name="FACEBOOK_CLIENT_TOKEN">000000000000000</string>
 </resources>

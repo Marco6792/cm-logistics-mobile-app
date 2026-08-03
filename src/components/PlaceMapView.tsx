@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
-import { YStack, useTheme } from 'tamagui';
+import { MapView, Marker } from './free-map';
+import { YStack } from 'tamagui';
 import { restoreFleetbasePlace, getCoordinates } from '../utils/location';
 import LocationMarker from './LocationMarker';
 import useFleetbase from '../hooks/use-fleetbase';
@@ -47,7 +47,7 @@ const PlaceMapView = ({ place: _place, width = '100%', height = 200, markerSize 
     }, [latitude, longitude]);
 
     return (
-        <Pressable onPress={onPress} style={{ flex: 1, width, height }}>
+        <Pressable onPress={onPress} style={{ flex: 1, width: width as any, height: height as any }}>
             <YStack position='relative' overflow='hidden' borderRadius='$4' width={width} height={height} {...props}>
                 <MapView
                     ref={mapRef}

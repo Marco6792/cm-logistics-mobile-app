@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { StyleSheet, Dimensions } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView from '../components/free-map/MapView';
 import { Spinner, Button, Text, XStack, YStack, useTheme } from 'tamagui';
 import { Place, Point } from '@fleetbase/sdk';
 import { useNavigation } from '@react-navigation/native';
@@ -43,8 +43,6 @@ const EditLocationCoordScreen = ({ route }) => {
 
     // Handle panning tracking
     const handleTouchStart = () => setIsPanning(true);
-    const handlePanDrag = () => setIsPanning(true);
-    const handleTouchEnd = () => setIsPanning(false);
 
     // Function to handle region change and update the center location
     const handleRegionChangeComplete = (region) => {
@@ -127,7 +125,6 @@ const EditLocationCoordScreen = ({ route }) => {
                 ref={mapRef}
                 style={{ ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' }}
                 onPress={handleTouchStart}
-                onPanDrag={handlePanDrag}
                 onRegionChangeComplete={handleRegionChangeComplete}
                 initialRegion={mapRegion}
             />

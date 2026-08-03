@@ -879,8 +879,8 @@ export function parseAutocompleteAddress(description = '') {
 }
 
 export function getDefaultCoordinates() {
-    const DEFAULT_LATITUDE = 1.369;
-    const DEFAULT_LONGITUDE = 103.8864;
+    const DEFAULT_LATITUDE = 4.0511;
+    const DEFAULT_LONGITUDE = 9.7679;
     const DEFAULT_COORDINATES = config('DEFAULT_COORDINATES', `${DEFAULT_LATITUDE},${DEFAULT_LONGITUDE}`);
     const [latitude, longitude] = DEFAULT_COORDINATES.split(',');
 

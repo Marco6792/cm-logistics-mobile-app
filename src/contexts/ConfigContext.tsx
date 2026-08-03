@@ -61,12 +61,18 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
 
     const resolveConnectionConfig = useCallback(
         (key, defaultValue = null) => {
+            const host = instanceLinkedFleetbaseHost && String(instanceLinkedFleetbaseHost).length > 0 ? instanceLinkedFleetbaseHost : config('FLEETBASE_HOST');
+            const apiKey = instanceLinkedFleetbaseKey && String(instanceLinkedFleetbaseKey).length > 0 ? instanceLinkedFleetbaseKey : config('FLEETBASE_KEY');
+            const socketHost = instanceLinkedSocketclusterHost && String(instanceLinkedSocketclusterHost).length > 0 ? instanceLinkedSocketclusterHost : config('SOCKETCLUSTER_HOST', 'socket.fleetbase.io');
+            const socketPort = instanceLinkedSocketclusterPort && String(instanceLinkedSocketclusterPort).length > 0 ? instanceLinkedSocketclusterPort : config('SOCKETCLUSTER_PORT', '8000');
+            const socketSecure = instanceLinkedSocketclusterSecure !== null && instanceLinkedSocketclusterSecure !== undefined ? instanceLinkedSocketclusterSecure : config('SOCKETCLUSTER_SECURE', true);
+
             const fullConfig = {
-                FLEETBASE_HOST: instanceLinkedFleetbaseHost ?? config('FLEETBASE_HOST'),
-                FLEETBASE_KEY: instanceLinkedFleetbaseKey ?? config('FLEETBASE_KEY'),
-                SOCKETCLUSTER_HOST: instanceLinkedSocketclusterHost ?? config('SOCKETCLUSTER_HOST', 'socket.fleetbase.io'),
-                SOCKETCLUSTER_PORT: parseInt(instanceLinkedSocketclusterPort ?? config('SOCKETCLUSTER_PORT', '8000')),
-                SOCKETCLUSTER_SECURE: toBoolean(instanceLinkedSocketclusterSecure ?? config('SOCKETCLUSTER_SECURE', true)),
+                FLEETBASE_HOST: host,
+                FLEETBASE_KEY: apiKey,
+                SOCKETCLUSTER_HOST: socketHost,
+                SOCKETCLUSTER_PORT: parseInt(socketPort),
+                SOCKETCLUSTER_SECURE: toBoolean(socketSecure),
                 SOCKETCLUSTER_PATH: config('SOCKETCLUSTER_PATH', '/socketcluster/'),
             };
 

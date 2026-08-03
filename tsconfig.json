@@ -1,6 +1,9 @@
 {
     "compilerOptions": {
+        "jsx": "react",
         "baseUrl": ".",
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
         "paths": {
             "*": ["*", "*.native", "*.web"]
         }

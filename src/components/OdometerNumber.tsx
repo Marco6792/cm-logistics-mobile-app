@@ -52,8 +52,8 @@ const OdometerDigit = ({ digit, digitHeight = 30, duration = 300, digitStyle, di
  * an OdometerDigit for each.
  */
 const OdometerNumber = ({ value = 0, digitHeight = 30, duration = 300, containerStyle, digitStyle, digitWrapperStyle, digitContainerStyle }) => {
-    // No negative numbers
-    value = value ? 0 : value;
+    // No negative numbers (clamp negatives/NaN/falsy to 0, keep positives)
+    value = value > 0 ? value : 0;
     // Convert numeric value to string, then to array of digits
     const stringValue = String(Math.floor(value)); // ignoring decimals for simplicity
     const digits = stringValue.split('').map((d) => parseInt(d, 10));

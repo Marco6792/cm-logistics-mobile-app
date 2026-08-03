@@ -1,7 +1,9 @@
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 import { Text, YStack, XStack, useTheme } from 'tamagui';
 import { useLocation } from '../contexts/LocationContext';
 import { useOrderManager } from '../contexts/OrderManagerContext';
+import OrderFetchErrorBanner from '../components/OrderFetchErrorBanner';
 import { humanize } from 'inflected';
 import { get } from '../utils';
 import OdometerNumber from '../components/OdometerNumber';
@@ -20,10 +22,17 @@ const DriverDashboardScreen = () => {
     const theme = useTheme();
     const navigation = useNavigation();
     const { isTracking, location } = useLocation();
-    const { allActiveOrders } = useOrderManager();
+    const { allActiveOrders, orderFetchErrors, retryOrderFetch, reloadActiveOrders } = useOrderManager();
+
+    useFocusEffect(
+        useCallback(() => {
+            reloadActiveOrders({}, { setLoadingFlag: false });
+        }, [reloadActiveOrders])
+    );
 
     return (
         <YStack flex={1} bg='$background'>
+            <OrderFetchErrorBanner errors={orderFetchErrors} onRetry={retryOrderFetch} />
             <YStack flex={1} padding='$4' gap='$4'>
                 <YStack space='$4'>
                     <WidgetContainer>

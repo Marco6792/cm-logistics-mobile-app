@@ -16,6 +16,7 @@ import CalendarStrip from 'react-native-calendar-strip';
 import OrderCard from '../components/OrderCard';
 import PastOrderCard from '../components/PastOrderCard';
 import AdhocOrderCard from '../components/AdhocOrderCard';
+import OrderFetchErrorBanner from '../components/OrderFetchErrorBanner';
 import Spacer from '../components/Spacer';
 import useStorage from '../hooks/use-storage';
 
@@ -61,6 +62,8 @@ const DriverOrderManagementScreen = () => {
         reloadNearbyOrders,
         dismissedOrders,
         setDimissedOrders,
+        orderFetchErrors,
+        retryOrderFetch,
     } = useOrderManager();
     const { listen } = useSocketClusterClient();
     const { addNotificationListener, removeNotificationListener } = useNotification();
@@ -222,6 +225,7 @@ const DriverOrderManagementScreen = () => {
 
     return (
         <YStack flex={1} bg='$surface'>
+            <OrderFetchErrorBanner errors={orderFetchErrors} onRetry={retryOrderFetch} />
             <YStack
                 bg='$background'
                 pb='$2'

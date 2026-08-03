@@ -10,13 +10,13 @@ const useFleetbase = () => {
 
     const [error, setError] = useState<Error | null>(null);
     const [authToken] = useStorage('_driver_token');
-    const [fleetbase, setFleetbase] = useState<Fleetbase | null>(new Fleetbase(authToken ?? FLEETBASE_KEY, { host: FLEETBASE_HOST }));
+    const [fleetbase, setFleetbase] = useState<Fleetbase | null>(null);
 
     const hasFleetbaseConfig = useCallback(() => {
         const FLEETBASE_KEY = resolveConnectionConfig('FLEETBASE_KEY');
         const FLEETBASE_HOST = resolveConnectionConfig('FLEETBASE_HOST');
 
-        return typeof FLEETBASE_KEY === 'string' && typeof FLEETBASE_HOST === 'string';
+        return typeof FLEETBASE_KEY === 'string' && FLEETBASE_KEY.length > 0 && typeof FLEETBASE_HOST === 'string' && FLEETBASE_HOST.length > 0;
     }, [resolveConnectionConfig]);
 
     useEffect(() => {
@@ -26,7 +26,12 @@ const useFleetbase = () => {
         try {
             // If authToken is present, initialize a new Fleetbase instance with it,
             // otherwise fall back to the default configuration.
-            const fleetbase = authToken ? new Fleetbase(authToken, { host: FLEETBASE_HOST }) : new Fleetbase(FLEETBASE_KEY, { host: FLEETBASE_HOST });
+            const key = authToken && authToken.length > 0 ? authToken : FLEETBASE_KEY;
+            if (!key || key.length === 0 || !FLEETBASE_HOST || FLEETBASE_HOST.length === 0) {
+                setFleetbase(null);
+                return;
+            }
+            const fleetbase = new Fleetbase(key, { host: FLEETBASE_HOST });
             setFleetbase(fleetbase);
         } catch (initializationError) {
             setError(initializationError as Error);

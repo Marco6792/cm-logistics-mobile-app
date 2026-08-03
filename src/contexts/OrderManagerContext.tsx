@@ -42,6 +42,32 @@ export const OrderManagerProvider: React.FC = ({ children }) => {
     const [isFetchingNearbyOrders, setIsFetchingNearbyOrders] = useState(false);
     const [isFetchingCurrentOrders, setIsFetchingCurrentOrders] = useState(false);
 
+    // Tracks fetch failures per order list (active, recent, nearby, current) so the
+    // UI can surface a connection error instead of silently rendering zero orders.
+    const [orderFetchErrors, setOrderFetchErrors] = useState<Record<string, string | null>>({});
+
+    const setOrderFetchError = useCallback((key: string, error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error ?? 'Unknown error');
+        const isConnectionFailure = /network request failed|econnrefused|econnaborted|timeout|timed out|failed to fetch|networkerror|could not connect|unreachable|offline/i.test(message);
+        setOrderFetchErrors((prev) => ({
+            ...prev,
+            [key]: isConnectionFailure ? `Unable to reach the Fleetbase server (${message}). Check your connection and try again.` : message,
+        }));
+    }, []);
+
+    const clearOrderFetchError = useCallback((key: string) => {
+        setOrderFetchErrors((prev) => {
+            if (!(key in prev)) return prev;
+            const next = { ...prev };
+            delete next[key];
+            return next;
+        });
+    }, []);
+
+    const clearAllOrderFetchErrors = useCallback(() => {
+        setOrderFetchErrors({});
+    }, []);
+
     // Define statuses to exclude from active orders
     const nonActiveOrderStatuses = useMemo(() => new Set(['completed', 'created', 'canceled', 'order_canceled']), []);
 
@@ -114,14 +140,16 @@ export const OrderManagerProvider: React.FC = ({ children }) => {
                 const fetchedOrders = await activeOrdersPromiseRef.current;
                 setAllActiveOrders(serializeCollection(fetchedOrders));
                 hasLoadedActiveRef.current = true;
+                clearOrderFetchError('active');
             } catch (error) {
                 console.warn('Unable to load active orders for driver:', error);
                 setAllActiveOrders([]);
+                setOrderFetchError('active', error);
             } finally {
                 activeOrdersPromiseRef.current = null;
             }
         },
-        [fleetbase, driver, queryOrders, setAllActiveOrders]
+        [fleetbase, driver, queryOrders, setAllActiveOrders, setOrderFetchError, clearOrderFetchError]
     );
 
     // Fetch recent orders
@@ -134,14 +162,16 @@ export const OrderManagerProvider: React.FC = ({ children }) => {
                 const fetchedOrders = await recentOrdersPromiseRef.current;
                 setAllRecentOrders(serializeCollection(fetchedOrders));
                 hasLoadedRecentRef.current = true;
+                clearOrderFetchError('recent');
             } catch (error) {
                 console.warn('Unable to load recent orders for driver:', error);
                 setAllRecentOrders([]);
+                setOrderFetchError('recent', error);
             } finally {
                 recentOrdersPromiseRef.current = null;
             }
         },
-        [fleetbase, driver, queryOrders, setAllRecentOrders]
+        [fleetbase, driver, queryOrders, setAllRecentOrders, setOrderFetchError, clearOrderFetchError]
     );
 
     // Fetch recent orders
@@ -157,14 +187,16 @@ export const OrderManagerProvider: React.FC = ({ children }) => {
                 const fetchedOrders = await nearbyOrdersPromiseRef.current;
                 setNearbyOrders(serializeCollection(fetchedOrders));
                 hasLoadedNearbyRef.current = true;
+                clearOrderFetchError('nearby');
             } catch (error) {
                 console.warn('Unable to load nearby orders for driver:', error);
                 setNearbyOrders([]);
+                setOrderFetchError('nearby', error);
             } finally {
                 nearbyOrdersPromiseRef.current = null;
             }
         },
-        [fleetbase, driver, queryOrders, setNearbyOrders]
+        [fleetbase, driver, queryOrders, setNearbyOrders, setOrderFetchError, clearOrderFetchError]
     );
 
     // Fetch current orders for the currentDate.
@@ -178,14 +210,16 @@ export const OrderManagerProvider: React.FC = ({ children }) => {
                 const fetchedOrders = await currentOrdersPromiseRef.current;
                 setCurrentOrders(serializeCollection(fetchedOrders));
                 hasLoadedCurrentRef.current = true;
+                clearOrderFetchError('current');
             } catch (error) {
                 console.warn('Unable to load current orders for driver:', error);
                 setCurrentOrders([]);
+                setOrderFetchError('current', error);
             } finally {
                 currentOrdersPromiseRef.current = null;
             }
         },
-        [fleetbase, driver, currentDate, queryOrders, setCurrentOrders]
+        [fleetbase, driver, currentDate, queryOrders, setCurrentOrders, setOrderFetchError, clearOrderFetchError]
     );
 
     // Allows an update of a sigle order in the storage
@@ -280,6 +314,23 @@ export const OrderManagerProvider: React.FC = ({ children }) => {
         [fetchNearbyOrders]
     );
 
+    // Re-run every order query (used by the error banner's Retry action).
+    const retryOrderFetch = useCallback(() => {
+        clearAllOrderFetchErrors();
+        hasLoadedActiveRef.current = false;
+        hasLoadedRecentRef.current = false;
+        hasLoadedNearbyRef.current = false;
+        hasLoadedCurrentRef.current = false;
+        activeOrdersPromiseRef.current = null;
+        recentOrdersPromiseRef.current = null;
+        nearbyOrdersPromiseRef.current = null;
+        currentOrdersPromiseRef.current = null;
+        fetchActiveOrders({}, { setLoadingFlag: false });
+        fetchRecentOrders({}, { setLoadingFlag: false });
+        fetchNearbyOrders({}, { setLoadingFlag: false });
+        fetchCurrentOrders({}, { setLoadingFlag: false });
+    }, [clearAllOrderFetchErrors, fetchActiveOrders, fetchRecentOrders, fetchNearbyOrders, fetchCurrentOrders]);
+
     const value = useMemo(
         () => ({
             queryOrders,
@@ -298,6 +349,9 @@ export const OrderManagerProvider: React.FC = ({ children }) => {
             isFetchingActiveOrders,
             isFetchingRecentOrders,
             isFetchingCurrentOrders,
+            orderFetchErrors,
+            hasOrderFetchErrors: Object.values(orderFetchErrors).some(Boolean),
+            retryOrderFetch,
             activeOrderMarkedDates,
             updateStorageOrder,
             fetchNearbyOrders,
@@ -319,6 +373,8 @@ export const OrderManagerProvider: React.FC = ({ children }) => {
             isFetchingActiveOrders,
             isFetchingRecentOrders,
             isFetchingCurrentOrders,
+            orderFetchErrors,
+            retryOrderFetch,
             activeOrderMarkedDates,
             fetchNearbyOrders,
             reloadNearbyOrders,

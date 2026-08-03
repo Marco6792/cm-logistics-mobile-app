@@ -145,7 +145,7 @@ export function formatCurrency(amount = 0, currency = 'USD', currencyDisplay = '
     }
 
     const currencyData = getCurrency(currency);
-    const locale = countryLocaleMap.getLocaleByAlpha2(currencyData.iso2).replace('_', '-');
+    const locale = (countryLocaleMap.getLocaleByAlpha2(currencyData.iso2) || 'en-US').replace('_', '-');
 
     if (currencyData?.precision === 0) {
         options.minimumFractionDigits = 0;
@@ -156,11 +156,11 @@ export function formatCurrency(amount = 0, currency = 'USD', currencyDisplay = '
 }
 
 export function formatMeters(meters) {
+    if (!meters || isNaN(meters)) return 'N/A';
     if (meters < 1000) {
-        return `${meters} meters`;
+        return `${Math.round(meters)} meters`;
     } else {
         const km = meters / 1000;
-        // Round to one decimal place
         const roundedKm = Math.round(km * 10) / 10;
         return `${roundedKm} km`;
     }

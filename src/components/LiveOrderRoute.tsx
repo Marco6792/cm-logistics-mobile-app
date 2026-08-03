@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { Text, YStack, XStack, useTheme } from 'tamagui';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
@@ -6,11 +6,11 @@ import { faBuilding, faTruck } from '@fortawesome/free-solid-svg-icons';
 import { Driver, Place } from '@fleetbase/sdk';
 import { useLocation } from '../contexts/LocationContext';
 import { restoreFleetbasePlace, getCoordinates } from '../utils/location';
-import { config, last, first } from '../utils';
+import { last, first } from '../utils';
 import { formattedAddressFromPlace } from '../utils/location';
 import { toast } from '../utils/toast';
-import MapView, { Marker } from 'react-native-maps';
-import MapViewDirections from 'react-native-maps-directions';
+import { MapView, Marker, RoutePolyline } from './free-map';
+import { getDirections as fetchDirections } from '../utils/routing';
 import LocationMarker from './LocationMarker';
 import DriverMarker from './DriverMarker';
 import useFleetbase from '../hooks/use-fleetbase';
@@ -116,18 +116,57 @@ const LiveOrderRoute = ({
     const [zoomLevel, setZoomLevel] = useState(calculateZoomLevel(initialDeltas));
     const markerOffset = calculateOffset(zoomLevel);
     const driverAssigned = order.getAttribute('driver_assigned') ? new Driver(order.getAttribute('driver_assigned')) : null;
+    const [routeCoordinates, setRouteCoordinates] = useState([]);
+    const [isFetchingRoute, setIsFetchingRoute] = useState(false);
+
+    // Fetch the route polyline using the free OSRM service.
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadRoute = async () => {
+            if (!origin || !destination) {
+                return;
+            }
+
+            setIsFetchingRoute(true);
+            try {
+                const waypointCoords = middleWaypoints.map(({ coordinate }) => coordinate);
+                const routeData = await fetchDirections(origin, destination, waypointCoords);
+                if (isMounted && routeData && routeData.routes && routeData.routes.length > 0) {
+                    const coordinates = routeData.routes[0].coordinates ?? [];
+                    setRouteCoordinates(coordinates.map(([longitude, latitude]) => ({ longitude, latitude })));
+                } else if (isMounted) {
+                    setRouteCoordinates([]);
+                }
+            } catch (error) {
+                console.warn('Error loading route:', error);
+                if (isMounted) {
+                    setRouteCoordinates([]);
+                }
+            } finally {
+                if (isMounted) {
+                    setIsFetchingRoute(false);
+                }
+            }
+        };
+
+        loadRoute();
+
+        return () => {
+            isMounted = false;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [origin?.latitude, origin?.longitude, destination?.latitude, destination?.longitude, order]);
 
     const handleRegionChangeComplete = (region) => {
-        setMapRegion(region);
+        setMapRegion((prev) => {
+            if (prev.latitude === region.latitude && prev.longitude === region.longitude && prev.latitudeDelta === region.latitudeDelta) {
+                return prev;
+            }
+            return region;
+        });
         const newZoomLevel = calculateZoomLevel(region.latitudeDelta);
         setZoomLevel(newZoomLevel);
-    };
-
-    const fitToRoute = ({ coordinates }) => {
-        mapRef.current.fitToCoordinates(coordinates, {
-            edgePadding: { top: edgePaddingTop, right: edgePaddingRight, bottom: edgePaddingBottom, left: edgePaddingLeft },
-            animated: true,
-        });
     };
 
     const focusDriver = ({ coordinates }) => {
@@ -144,6 +183,16 @@ const LiveOrderRoute = ({
         );
     };
 
+    // Fit the map to the route once it is loaded.
+    useEffect(() => {
+        if (routeCoordinates.length > 1 && mapRef.current) {
+            mapRef.current.fitToCoordinates(routeCoordinates, {
+                edgePadding: { top: edgePaddingTop, right: edgePaddingRight, bottom: edgePaddingBottom, left: edgePaddingLeft },
+                animated: true,
+            });
+        }
+    }, [routeCoordinates, edgePaddingTop, edgePaddingRight, edgePaddingBottom, edgePaddingLeft]);
+
     return (
         <YStack flex={1} position='relative' overflow='hidden' width={width} height={height} {...props}>
             <MapView
@@ -157,31 +206,23 @@ const LiveOrderRoute = ({
                 {driverAssigned && <DriverMarker driver={driverAssigned} onMovement={focusDriver} />}
                 {start && start?.id !== 'driver' && (
                     <Marker coordinate={origin} centerOffset={markerOffset}>
-                        <MarkerLabel icon={start?.id === 'driver' ? faTruck : null} label={formattedAddressFromPlace(start)} markerOffset={markerOffset} theme={theme} />
-                        <LocationMarker size={markerSize} />
+                        <MarkerLabel icon={faTruck} label={formattedAddressFromPlace(start)} markerOffset={markerOffset} theme={theme} />
+                        <LocationMarker size={markerSize} color='#16A34A' />
                     </Marker>
                 )}
                 {middleWaypoints.map((waypoint, idx) => (
                     <Marker key={waypoint.id || idx} coordinate={waypoint.coordinate} centerOffset={markerOffset}>
                         <MarkerLabel label={waypoint.address} markerOffset={markerOffset} theme={theme} />
-                        <LocationMarker size={markerSize} />
+                        <LocationMarker size={markerSize} color='#F59E0B' />
                     </Marker>
                 ))}
                 <Marker coordinate={destination} centerOffset={markerOffset}>
                     <MarkerLabel label={formattedAddressFromPlace(end)} markerOffset={{ width: 0, height: 5 }} theme={theme} />
-                    <LocationMarker size={markerSize} />
+                    <LocationMarker size={markerSize} color='#DC2626' />
                 </Marker>
 
                 {origin && destination && (
-                    <MapViewDirections
-                        origin={origin}
-                        destination={destination}
-                        waypoints={middleWaypoints.map(({ coordinate }) => coordinate)}
-                        apikey={config('GOOGLE_MAPS_API_KEY')}
-                        strokeWidth={4}
-                        strokeColor={theme['$blue-500'].val}
-                        onReady={fitToRoute}
-                    />
+                    <RoutePolyline coordinates={routeCoordinates} strokeWidth={4} strokeColor={theme['$blue-500'].val} />
                 )}
             </MapView>
 

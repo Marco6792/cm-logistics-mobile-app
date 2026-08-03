@@ -22,21 +22,34 @@ buildscript {
         }
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:3.5.4")
+        classpath("com.android.tools.build:gradle:8.7.2")
         classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
         classpath('com.google.gms:google-services:4.3.15')
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
     }
 }
 
-allprojects { 
+allprojects {
+    configurations.configureEach {
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'org.jetbrains.kotlin' && details.requested.name.startsWith('kotlin-')) {
+                details.useVersion rootProject.ext.kotlinVersion
+                details.because('Align Kotlin stdlib artifacts with the project Kotlin version')
+            }
+        }
+    }
+
     repositories {
-        // Required for react-native-background-geolocation
-        maven { url("${project(':react-native-background-geolocation').projectDir}/libs") }
+        google()
+        mavenLocal()
+        mavenCentral()
+        maven { url 'https://maven.google.com' }
+        maven { url 'https://repo1.maven.org/maven2' }
+        // Required for react-native-background-geolocation local TransistorSoft artifacts
+        maven { url("${project(':react-native-background-geolocation').projectDir}/android/libs") }
+        // Required for react-native-background-fetch local TransistorSoft artifacts
+        maven { url("${project(':react-native-background-geolocation').projectDir}/node_modules/react-native-background-fetch/android/libs") }
         maven { url 'https://developer.huawei.com/repo/' }
-        // Required for react-native-background-fetch
-        maven { url("${project(':react-native-background-fetch').projectDir}/libs") }
     }
 }
 

@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import { ScrollView, RefreshControl, SafeAreaView, StyleSheet, Alert, Platform } from 'react-native';
 import { Separator, Button, Image, Stack, Text, YStack, XStack, Spinner, useTheme } from 'tamagui';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faPaperPlane, faPenToSquare, faFlagCheckered, faCheck, faBan } from '@fortawesome/free-solid-svg-icons';
+import { faPaperPlane, faPenToSquare, faFlagCheckered, faCheck, faBan, faCamera } from '@fortawesome/free-solid-svg-icons';
 import { BlurView } from '@react-native-community/blur';
 import { PortalHost } from '@gorhom/portal';
 import LaunchNavigator from 'react-native-launch-navigator';
@@ -156,7 +156,10 @@ const OrderScreen = ({ route }) => {
 
     const startNavigation = useCallback(async () => {
         if (Platform.OS === 'android') {
-            LaunchNavigator.setGoogleApiKey(config('GOOGLE_MAPS_API_KEY'));
+            const apiKey = config('GOOGLE_MAPS_API_KEY');
+            if (apiKey) {
+                LaunchNavigator.setGoogleApiKey(apiKey);
+            }
         }
 
         const apps = await LaunchNavigator.getAvailableApps();
@@ -170,19 +173,22 @@ const OrderScreen = ({ route }) => {
 
                 const app = availableApps[buttonIndex];
                 const destinationCoordinates = getCoordinates(destination);
+                const locationCoords = location?.coords ? [location.coords.latitude, location.coords.longitude] : null;
 
                 try {
                     await LaunchNavigator.navigate(destinationCoordinates, {
                         app,
+                        ...(locationCoords ? { start: locationCoords } : {}),
                         launchMode: LaunchNavigator.LAUNCH_MODE.TURN_BY_TURN,
                         destinationName: destination.getAttribute('name') ?? destination.getAttribute('street1'),
                     });
                 } catch (err) {
                     console.warn('Error launching navigation:', err);
+                    Alert.alert('Navigation Error', err?.message || 'Could not launch navigation app.');
                 }
             },
         });
-    }, [destination]);
+    }, [destination, location]);
 
     const alertDestinationChanged = (previousDestination, currentDestination, order) => {
         return Alert.alert(
@@ -455,6 +461,11 @@ const OrderScreen = ({ route }) => {
         };
     }, [listen, order.id]);
 
+    const captureProofOfDelivery = useCallback(() => {
+        const photoActivity = { code: 'proof_of_delivery', pod_method: 'photo', require_pod: true, status: 'Proof of Delivery' };
+        navigation.navigate('ProofOfDelivery', { activity: photoActivity, order: order.serialize(), waypoint: destination?.serialize() });
+    }, [order, destination, navigation]);
+
     useEffect(() => {
         const updateActivityWithProof = async (activity, proof) => {
             try {
@@ -634,11 +645,11 @@ const OrderScreen = ({ route }) => {
                         <Separator />
                         <SectionInfoLine title='Total Distance' value={formatMeters(trackerData.total_distance)} />
                         <Separator />
-                        <SectionInfoLine title='Start Time' value={trackerData.start_time ? '-' : trackerData.start_time} />
+                        <SectionInfoLine title='Start Time' value={trackerData.start_time || '-'} />
                         <Separator />
                         <SectionInfoLine title='Current ETA' value={trackerData.current_destination_eta === -1 ? 'N/A' : formatDuration(trackerData.current_destination_eta)} />
                         <Separator />
-                        <SectionInfoLine title='ECT' value={trackerData.estimated_completion_time_formatted} />
+                        <SectionInfoLine title='ECT' value={trackerData.estimated_completion_time_formatted || '-'} />
                     </YStack>
                 </YStack>
                 <SectionHeader title='Order Notes' />
@@ -646,6 +657,14 @@ const OrderScreen = ({ route }) => {
                     <Text color='$textPrimary'>{order.getAttribute('notes', 'N/A') ?? 'N/A'}</Text>
                 </YStack>
                 <SectionHeader title='Order Proof' />
+                <YStack px='$3' py='$3'>
+                    <Button onPress={captureProofOfDelivery} bg='$info' borderWidth={1} borderColor='$infoBorder' mb='$3'>
+                        <Button.Icon>
+                            <FontAwesomeIcon icon={faCamera} color={theme.infoText.val} />
+                        </Button.Icon>
+                        <Button.Text color='$infoText'>Capture Proof of Delivery</Button.Text>
+                    </Button>
+                </YStack>
                 <YStack>
                     <OrderProofOfDelivery order={order} />
                 </YStack>

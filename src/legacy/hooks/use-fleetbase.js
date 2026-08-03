@@ -21,8 +21,15 @@ const useFleetbase = (namespace) => {
         FLEETBASE_KEY = _DRIVER.token;
     }
 
-    const fleetbase = new Fleetbase(FLEETBASE_KEY, {
-        host: FLEETBASE_HOST,
+    const key = FLEETBASE_KEY && String(FLEETBASE_KEY).length > 0 ? FLEETBASE_KEY : null;
+    const host = FLEETBASE_HOST && String(FLEETBASE_HOST).length > 0 ? FLEETBASE_HOST : 'https://api.fleetbase.io';
+
+    if (!key) {
+        return null;
+    }
+
+    const fleetbase = new Fleetbase(key, {
+        host,
         namespace: FLEETBASE_NAMESPACE ?? namespace,
     });
 
